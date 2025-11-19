@@ -1,0 +1,11 @@
+C:\Users\yprod\OneDrive\Desktop\runas\bin\Debug\net48\RunAs.exe.config
+C:\Users\yprod\OneDrive\Desktop\runas\bin\Debug\net48\RunAs.exe
+C:\Users\yprod\OneDrive\Desktop\runas\bin\Debug\net48\RunAs.pdb
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.csproj.AssemblyReference.cache
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.AssemblyInfoInputs.cache
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.AssemblyInfo.cs
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.csproj.CoreCompileInputs.cache
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.sourcelink.json
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.exe
+C:\Users\yprod\OneDrive\Desktop\runas\obj\Debug\net48\RunAs.pdb
