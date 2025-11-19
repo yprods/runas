@@ -12,8 +12,8 @@ namespace RunAs
             // Check if command was provided
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: RunAs.exe <command> [arguments]");
-                Console.WriteLine("Example: RunAs.exe cmd.exe /c dir");
+                Console.WriteLine("Usage: RunAsCmd.exe <command> [arguments]");
+                Console.WriteLine("Example: RunAsCmd.exe cmd.exe /c dir");
                 Environment.Exit(1);
                 return;
             }

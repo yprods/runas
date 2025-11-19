@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net48</TargetFramework>
     <RootNamespace>RunAs</RootNamespace>
-    <AssemblyName>RunAs</AssemblyName>
+    <AssemblyName>RunAsCmd</AssemblyName>
   </PropertyGroup>
 
 </Project>

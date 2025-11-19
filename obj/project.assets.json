@@ -16,7 +16,7 @@
     "version": "1.0.0",
     "restore": {
       "projectUniqueName": "C:\\Users\\yprod\\OneDrive\\Desktop\\runas\\RunAs.csproj",
-      "projectName": "RunAs",
+      "projectName": "RunAsCmd",
       "projectPath": "C:\\Users\\yprod\\OneDrive\\Desktop\\runas\\RunAs.csproj",
       "packagesPath": "C:\\Users\\yprod\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\yprod\\OneDrive\\Desktop\\runas\\obj\\",
