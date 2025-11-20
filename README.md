@@ -20,12 +20,26 @@ The executable will be created at: `bin\Debug\net48\RunAsCmd.exe`
 ## Usage
 
 ```bash
-RunAsCmd.exe <command> [arguments]
+RunAsCmd.exe [-u username] <command> [arguments]
 ```
 
-The application will prompt for:
-- Username (supports `DOMAIN\username` or just `username`)
-- Password (input is masked with `*` characters)
+### Options:
+- `-u`, `-user`, `/u`, `/u:username` - Username to run command as (DOMAIN\user or user)
+  - If omitted, you will be prompted for username
+- Password is always prompted (for security)
+
+### Examples:
+
+**With username in command line (recommended):**
+```bash
+RunAsCmd.exe -u DOMAIN\Admin cmd.exe /c dir
+RunAsCmd.exe /u:DOMAIN\Admin powershell.exe -Command "Get-Process"
+```
+
+**Without username (will prompt):**
+```bash
+RunAsCmd.exe cmd.exe /c dir
+```
 
 ## Examples
 
@@ -43,35 +57,35 @@ RunAsCmd.exe powershell.exe -Command "Get-Process"
 
 **Prerequisites:** You need `psexec.exe` from Microsoft Sysinternals installed and accessible in PATH.
 
-**Kill a process by name:**
+**Kill a process by name (with username):**
 ```bash
-RunAsCmd.exe psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe
+RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe
 ```
 
 **Kill a process by PID:**
 ```bash
-RunAsCmd.exe psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /PID 1234
+RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /PID 1234
 ```
 
 **Kill multiple processes:**
 ```bash
-RunAsCmd.exe psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe /IM calc.exe
+RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe /IM calc.exe
 ```
 
 **Kill all instances of a process on remote computer:**
 ```bash
-RunAsCmd.exe psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM chrome.exe /T
+RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM chrome.exe /T
 ```
 
 ### Complete Workflow Example
 
-1. You want to kill `notepad.exe` on a remote computer `SERVER01` as domain user `DOMAIN\Admin`
-2. You run:
+1. You want to kill `notepad.exe` on a remote computer `SERVER01` 
+2. You have admin credentials: `DOMAIN\Admin`
+3. You run:
    ```
-   RunAsCmd.exe psexec.exe \\SERVER01 -u DOMAIN\Admin taskkill /F /IM notepad.exe
+   RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\SERVER01 -u DOMAIN\User taskkill /F /IM notepad.exe
    ```
-3. You'll be prompted for credentials (the credentials for running psexec itself)
-4. Enter username: `DOMAIN\Admin`
+4. You'll only be prompted for password (username is already provided)
 5. Enter password: `********`
 6. The command executes and shows the output
 

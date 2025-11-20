@@ -17,23 +17,94 @@ namespace RunAs
                 return;
             }
 
-            // Get the command and arguments
-            string command = args[0];
-            string arguments = args.Length > 1 ? BuildArgumentsString(args, 1) : string.Empty;
+            string username = null;
+            string command = null;
+            string arguments = string.Empty;
+            int commandStartIndex = 0;
 
-            try
+            // Parse arguments for username flag (-u, /u, -user)
+            for (int i = 0; i < args.Length; i++)
             {
-                // Prompt for credentials
-                Console.Write("Enter username (DOMAIN\\username or username): ");
-                string username = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(username))
+                string arg = args[i].ToLower();
+                
+                if (arg == "-u" || arg == "-user" || arg == "/u")
                 {
-                    Console.WriteLine("Username cannot be empty.");
+                    // Username is the next argument
+                    if (i + 1 < args.Length)
+                    {
+                        username = args[i + 1];
+                        commandStartIndex = i + 2;
+                        break;
+                    }
+                }
+                else if (arg.StartsWith("/u:"))
+                {
+                    // Username is after /u:
+                    username = args[i].Substring(3);
+                    commandStartIndex = i + 1;
+                    break;
+                }
+            }
+
+            // If no username flag found, check if first argument is username (for backward compatibility)
+            if (username == null && args.Length >= 2)
+            {
+                // Check if it looks like a username pattern or just start with command
+                commandStartIndex = 0;
+            }
+
+            // If username was not provided via flag, we need at least one arg for command
+            if (username == null && args.Length < 1)
+            {
+                ShowUsage();
+                Environment.Exit(1);
+                return;
+            }
+
+            // If username still not set, we'll prompt for it
+            // Otherwise, get command from the remaining args
+            if (username != null)
+            {
+                if (commandStartIndex >= args.Length)
+                {
+                    Console.WriteLine("Error: Command not provided after username.");
+                    ShowUsage();
                     Environment.Exit(1);
                     return;
                 }
+                command = args[commandStartIndex];
+                if (commandStartIndex + 1 < args.Length)
+                {
+                    arguments = BuildArgumentsString(args, commandStartIndex + 1);
+                }
+            }
+            else
+            {
+                // No username flag, assume first arg is command (backward compatibility)
+                command = args[0];
+                if (args.Length > 1)
+                {
+                    arguments = BuildArgumentsString(args, 1);
+                }
+            }
 
+            try
+            {
+                // Prompt for username if not provided
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    Console.Write("Enter username (DOMAIN\\username or username): ");
+                    username = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(username))
+                    {
+                        Console.WriteLine("Username cannot be empty.");
+                        Environment.Exit(1);
+                        return;
+                    }
+                }
+
+                // Always prompt for password (for security)
                 Console.Write("Enter password: ");
                 SecureString password = GetSecurePassword();
 
@@ -197,20 +268,24 @@ namespace RunAs
         {
             Console.WriteLine("RunAsCmd - Execute Commands as Another User");
             Console.WriteLine();
-            Console.WriteLine("Usage: RunAsCmd.exe <command> [arguments]");
+            Console.WriteLine("Usage: RunAsCmd.exe [-u username] <command> [arguments]");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            Console.WriteLine("  -u, -user, /u, /u:username    Username to run command as (DOMAIN\\user or user)");
+            Console.WriteLine("                                 If omitted, you will be prompted for username");
             Console.WriteLine();
             Console.WriteLine("Examples:");
-            Console.WriteLine("  RunAsCmd.exe cmd.exe /c dir");
-            Console.WriteLine("  RunAsCmd.exe powershell.exe -Command \"Get-Process\"");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\User cmd.exe /c dir");
+            Console.WriteLine("  RunAsCmd.exe /u:DOMAIN\\User powershell.exe -Command \"Get-Process\"");
             Console.WriteLine();
             Console.WriteLine("Kill a process on a remote computer using psexec:");
-            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe");
             Console.WriteLine();
             Console.WriteLine("Kill a process by PID on remote computer:");
-            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /PID 1234");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /PID 1234");
             Console.WriteLine();
             Console.WriteLine("Kill multiple processes on remote computer:");
-            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe /IM calc.exe");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe /IM calc.exe");
         }
     }
 }
