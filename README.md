@@ -20,12 +20,13 @@ The executable will be created at: `bin\Debug\net48\RunAsCmd.exe`
 ## Usage
 
 ```bash
-RunAsCmd.exe [-u username] <command> [arguments]
+RunAsCmd.exe [-u username] [-o outputfile] <command> [arguments]
 ```
 
 ### Options:
 - `-u`, `-user`, `/u`, `/u:username` - Username to run command as (DOMAIN\user or user)
   - If omitted, you will be prompted for username
+- `-o`, `--output`, `/o`, `/o:file` - Output file path (writes output to file instead of console)
 - Password is always prompted (for security)
 
 ### Examples:
@@ -34,6 +35,12 @@ RunAsCmd.exe [-u username] <command> [arguments]
 ```bash
 RunAsCmd.exe -u DOMAIN\Admin cmd.exe /c dir
 RunAsCmd.exe /u:DOMAIN\Admin powershell.exe -Command "Get-Process"
+```
+
+**Write output to file:**
+```bash
+RunAsCmd.exe -u DOMAIN\Admin -o output.txt cmd.exe /c dir
+RunAsCmd.exe -u DOMAIN\Admin /o:C:\logs\result.txt cmd.exe /c dir
 ```
 
 **Without username (will prompt):**
@@ -60,6 +67,11 @@ RunAsCmd.exe powershell.exe -Command "Get-Process"
 **Kill a process by name (with username):**
 ```bash
 RunAsCmd.exe -u DOMAIN\Admin psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe
+```
+
+**Kill a process and write output to file:**
+```bash
+RunAsCmd.exe -u DOMAIN\Admin -o kill_result.txt psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe
 ```
 
 **Kill a process by PID:**

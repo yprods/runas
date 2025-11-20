@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Security;
 using System.Text;
 
@@ -18,74 +20,84 @@ namespace RunAs
             }
 
             string username = null;
+            string outputFile = null;
             string command = null;
             string arguments = string.Empty;
-            int commandStartIndex = 0;
+            List<string> remainingArgs = new List<string>();
 
-            // Parse arguments for username flag (-u, /u, -user)
+            // Parse arguments for username flag (-u, /u, -user) and output file (-o, /o, --output)
             for (int i = 0; i < args.Length; i++)
             {
-                string arg = args[i].ToLower();
+                string arg = args[i];
+                string argLower = arg.ToLower();
                 
-                if (arg == "-u" || arg == "-user" || arg == "/u")
+                if (argLower == "-u" || argLower == "-user" || argLower == "/u")
                 {
                     // Username is the next argument
                     if (i + 1 < args.Length)
                     {
                         username = args[i + 1];
-                        commandStartIndex = i + 2;
-                        break;
+                        i++; // Skip the next argument
+                        continue;
                     }
                 }
-                else if (arg.StartsWith("/u:"))
+                else if (argLower.StartsWith("/u:"))
                 {
                     // Username is after /u:
-                    username = args[i].Substring(3);
-                    commandStartIndex = i + 1;
-                    break;
+                    username = arg.Substring(3);
+                    continue;
                 }
-            }
-
-            // If no username flag found, check if first argument is username (for backward compatibility)
-            if (username == null && args.Length >= 2)
-            {
-                // Check if it looks like a username pattern or just start with command
-                commandStartIndex = 0;
-            }
-
-            // If username was not provided via flag, we need at least one arg for command
-            if (username == null && args.Length < 1)
-            {
-                ShowUsage();
-                Environment.Exit(1);
-                return;
-            }
-
-            // If username still not set, we'll prompt for it
-            // Otherwise, get command from the remaining args
-            if (username != null)
-            {
-                if (commandStartIndex >= args.Length)
+                else if (argLower == "-o" || argLower == "--output" || argLower == "/o")
                 {
-                    Console.WriteLine("Error: Command not provided after username.");
-                    ShowUsage();
-                    Environment.Exit(1);
-                    return;
+                    // Output file is the next argument
+                    if (i + 1 < args.Length)
+                    {
+                        outputFile = args[i + 1];
+                        i++; // Skip the next argument
+                        continue;
+                    }
                 }
-                command = args[commandStartIndex];
-                if (commandStartIndex + 1 < args.Length)
+                else if (argLower.StartsWith("/o:") || argLower.StartsWith("-o:"))
                 {
-                    arguments = BuildArgumentsString(args, commandStartIndex + 1);
+                    // Output file is after /o: or -o:
+                    int colonIndex = arg.IndexOf(':');
+                    if (colonIndex >= 0 && colonIndex < arg.Length - 1)
+                    {
+                        outputFile = arg.Substring(colonIndex + 1);
+                    }
+                    continue;
+                }
+                
+                // This argument is not a flag, add to remaining args
+                remainingArgs.Add(arg);
+            }
+
+            // Extract command from remaining arguments
+            if (remainingArgs.Count > 0)
+            {
+                command = remainingArgs[0];
+                if (remainingArgs.Count > 1)
+                {
+                    arguments = BuildArgumentsString(remainingArgs.ToArray(), 1);
                 }
             }
-            else
+            else if (args.Length > 0)
             {
-                // No username flag, assume first arg is command (backward compatibility)
+                // Backward compatibility: no flags found, assume first arg is command
                 command = args[0];
                 if (args.Length > 1)
                 {
                     arguments = BuildArgumentsString(args, 1);
                 }
+            }
+
+            // Validate command was provided
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                Console.WriteLine("Error: Command not provided.");
+                ShowUsage();
+                Environment.Exit(1);
+                return;
             }
 
             try
@@ -116,14 +128,25 @@ namespace RunAs
                 }
 
                 // Run the command with the provided credentials
-                RunCommandAsUser(command, arguments, username, password);
+                RunCommandAsUser(command, arguments, username, password, outputFile);
 
                 // Clear the password from memory
                 password.Dispose();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                string errorMsg = $"Error: {ex.Message}";
+                Console.WriteLine(errorMsg);
+                
+                if (!string.IsNullOrEmpty(outputFile))
+                {
+                    try
+                    {
+                        File.AppendAllText(outputFile, errorMsg + Environment.NewLine);
+                    }
+                    catch { }
+                }
+                
                 Environment.Exit(1);
             }
         }
@@ -155,7 +178,7 @@ namespace RunAs
             return password;
         }
 
-        static void RunCommandAsUser(string command, string arguments, string username, SecureString password)
+        static void RunCommandAsUser(string command, string arguments, string username, SecureString password, string outputFile)
         {
             // Extract domain and username
             string domain = ExtractDomain(username);
@@ -175,39 +198,94 @@ namespace RunAs
                 LoadUserProfile = true
             };
 
-            Console.WriteLine($"\nRunning '{command} {arguments}' as {username}...\n");
+            string statusMsg = $"\nRunning '{command} {arguments}' as {username}...\n";
+            Console.WriteLine(statusMsg);
 
-            using (Process process = Process.Start(startInfo))
+            StreamWriter fileWriter = null;
+            if (!string.IsNullOrEmpty(outputFile))
             {
-                if (process == null)
+                try
                 {
-                    throw new InvalidOperationException("Failed to start process. Check credentials and permissions.");
+                    fileWriter = new StreamWriter(outputFile, false, Encoding.UTF8);
+                    fileWriter.WriteLine(statusMsg);
+                    fileWriter.Flush();
                 }
-
-                // Read output
-                process.OutputDataReceived += (sender, e) =>
+                catch (Exception ex)
                 {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        Console.WriteLine(e.Data);
-                    }
-                };
+                    Console.WriteLine($"Warning: Could not open output file '{outputFile}': {ex.Message}");
+                    Console.WriteLine("Output will be displayed on console only.");
+                }
+            }
 
-                process.ErrorDataReceived += (sender, e) =>
+            try
+            {
+                using (Process process = Process.Start(startInfo))
                 {
-                    if (!string.IsNullOrEmpty(e.Data))
+                    if (process == null)
                     {
-                        Console.Error.WriteLine(e.Data);
+                        throw new InvalidOperationException("Failed to start process. Check credentials and permissions.");
                     }
-                };
 
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                    // Read output
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            if (fileWriter != null)
+                            {
+                                fileWriter.WriteLine(e.Data);
+                                fileWriter.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine(e.Data);
+                            }
+                        }
+                    };
 
-                process.WaitForExit();
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            if (fileWriter != null)
+                            {
+                                fileWriter.WriteLine("ERROR: " + e.Data);
+                                fileWriter.Flush();
+                            }
+                            else
+                            {
+                                Console.Error.WriteLine(e.Data);
+                            }
+                        }
+                    };
 
-                Console.WriteLine($"\nProcess exited with code: {process.ExitCode}");
-                Environment.Exit(process.ExitCode);
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    process.WaitForExit();
+
+                    string exitMsg = $"\nProcess exited with code: {process.ExitCode}";
+                    
+                    if (fileWriter != null)
+                    {
+                        fileWriter.WriteLine(exitMsg);
+                        fileWriter.Flush();
+                    }
+                    else
+                    {
+                        Console.WriteLine(exitMsg);
+                    }
+                    
+                    Environment.Exit(process.ExitCode);
+                }
+            }
+            finally
+            {
+                if (fileWriter != null)
+                {
+                    fileWriter.Close();
+                    Console.WriteLine($"Output written to: {outputFile}");
+                }
             }
         }
 
@@ -268,18 +346,23 @@ namespace RunAs
         {
             Console.WriteLine("RunAsCmd - Execute Commands as Another User");
             Console.WriteLine();
-            Console.WriteLine("Usage: RunAsCmd.exe [-u username] <command> [arguments]");
+            Console.WriteLine("Usage: RunAsCmd.exe [-u username] [-o outputfile] <command> [arguments]");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("  -u, -user, /u, /u:username    Username to run command as (DOMAIN\\user or user)");
             Console.WriteLine("                                 If omitted, you will be prompted for username");
+            Console.WriteLine("  -o, --output, /o, /o:file     Output file path (writes output to file instead of console)");
             Console.WriteLine();
             Console.WriteLine("Examples:");
             Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\User cmd.exe /c dir");
             Console.WriteLine("  RunAsCmd.exe /u:DOMAIN\\User powershell.exe -Command \"Get-Process\"");
             Console.WriteLine();
+            Console.WriteLine("Write output to file:");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\User -o output.txt cmd.exe /c dir");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\User /o:C:\\logs\\result.txt cmd.exe /c dir");
+            Console.WriteLine();
             Console.WriteLine("Kill a process on a remote computer using psexec:");
-            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe");
+            Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin -o result.txt psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe");
             Console.WriteLine();
             Console.WriteLine("Kill a process by PID on remote computer:");
             Console.WriteLine("  RunAsCmd.exe -u DOMAIN\\Admin psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /PID 1234");

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RunAsCmd")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0dc18c20673474bb9489baa9478ef26a86169af0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+691063c17b42115c37d9111ba2627b672b437e63")]
 [assembly: System.Reflection.AssemblyProductAttribute("RunAsCmd")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RunAsCmd")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
