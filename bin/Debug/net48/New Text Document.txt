@@ -1,0 +1,1 @@
+RunAsCmd.exe -u DOMAIN\Admin -o kill_result.txt psexec.exe \\RemotePC -u DOMAIN\User taskkill /F /IM notepad.exe
