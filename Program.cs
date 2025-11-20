@@ -12,15 +12,14 @@ namespace RunAs
             // Check if command was provided
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: RunAsCmd.exe <command> [arguments]");
-                Console.WriteLine("Example: RunAsCmd.exe cmd.exe /c dir");
+                ShowUsage();
                 Environment.Exit(1);
                 return;
             }
 
             // Get the command and arguments
             string command = args[0];
-            string arguments = args.Length > 1 ? string.Join(" ", args, 1, args.Length - 1) : string.Empty;
+            string arguments = args.Length > 1 ? BuildArgumentsString(args, 1) : string.Empty;
 
             try
             {
@@ -168,6 +167,50 @@ namespace RunAs
             }
 
             return username;
+        }
+
+        static string BuildArgumentsString(string[] args, int startIndex)
+        {
+            // Build argument string, preserving quotes for arguments that need them
+            StringBuilder argBuilder = new StringBuilder();
+            for (int i = startIndex; i < args.Length; i++)
+            {
+                if (i > startIndex)
+                    argBuilder.Append(" ");
+
+                // If argument contains spaces, wrap it in quotes
+                if (args[i].Contains(" "))
+                {
+                    argBuilder.Append("\"");
+                    argBuilder.Append(args[i]);
+                    argBuilder.Append("\"");
+                }
+                else
+                {
+                    argBuilder.Append(args[i]);
+                }
+            }
+            return argBuilder.ToString();
+        }
+
+        static void ShowUsage()
+        {
+            Console.WriteLine("RunAsCmd - Execute Commands as Another User");
+            Console.WriteLine();
+            Console.WriteLine("Usage: RunAsCmd.exe <command> [arguments]");
+            Console.WriteLine();
+            Console.WriteLine("Examples:");
+            Console.WriteLine("  RunAsCmd.exe cmd.exe /c dir");
+            Console.WriteLine("  RunAsCmd.exe powershell.exe -Command \"Get-Process\"");
+            Console.WriteLine();
+            Console.WriteLine("Kill a process on a remote computer using psexec:");
+            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe");
+            Console.WriteLine();
+            Console.WriteLine("Kill a process by PID on remote computer:");
+            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /PID 1234");
+            Console.WriteLine();
+            Console.WriteLine("Kill multiple processes on remote computer:");
+            Console.WriteLine("  RunAsCmd.exe psexec.exe \\\\RemotePC -u DOMAIN\\User taskkill /F /IM notepad.exe /IM calc.exe");
         }
     }
 }
